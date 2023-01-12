@@ -1,4 +1,6 @@
 const { validarArticulo } = require("../helpers/validar");
+const fs = require("fs");
+const path = require("path");
 const Articulo = require("../modelos/Articulo");
 
 const prueba = (req, res) => {
@@ -145,9 +147,60 @@ const editar = (req, res) => {
 };
 
 const subir = (req, res) => {
-  return res.status(200).send({
-    status: "success",
-  });
+  //Configurar multer
+
+  //Recoger el fichero de imagern subido
+  if (!req.file && !req.files) {
+    return res.status(400).json({
+      status: "error",
+      mensaje: "Peticion Invalida",
+    });
+  }
+
+  //Nombre del archivo
+  let archivo = req.file.originalname;
+
+  //Extension del archivo
+  let archivo_split = archivo.split("\.");
+  let extension = archivo_split[1];
+
+  //Comprobar extension correcta
+  if (extension != "png" && extension != "jpg" &&
+    extension != "jpeg" && extension != "gif") {
+    fs.unlink(req.file.path, (error) => {
+      return res.status(400).json({
+        status: "error",
+        mensaje: "Imagen invalida",
+      });
+    })
+  } else {
+    //Si todo va bien, actualizar el articulo
+    let articuloId = req.params.id;
+    Articulo.findOneAndUpdate(
+      { _id: articuloId },
+      {imagen: req.file.filename},
+      { new: true },
+      (error, articuloActualizado) => {
+        if (error || !articuloActualizado) {
+          return res.status(500).json({
+            status: "error",
+            mensaje: "Error al actualizar el articulo",
+          });
+        }        
+      }
+    );
+    //Devolver respuesta
+    return res.status(200).json({
+      status: "success",
+      files: req.file,
+      fichero: req.file
+    });
+  }
+};
+
+const imagen = (req, res) => {
+  let fichero = req.params.fichero;
+  let rut_fisica = "./imagenes/articulos" + fichero;
 }
 
 
@@ -159,4 +212,5 @@ module.exports = {
   borrar,
   editar,
   subir,
+  imagen,
 };

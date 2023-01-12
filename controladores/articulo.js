@@ -200,7 +200,53 @@ const subir = (req, res) => {
 
 const imagen = (req, res) => {
   let fichero = req.params.fichero;
-  let rut_fisica = "./imagenes/articulos" + fichero;
+  let ruta_fisica = "./imagenes/articulos/"+fichero;
+
+  fs.stat(ruta_fisica, (error, existe) => {
+    if (existe) {
+      return res.sendFile(path.resolve(ruta_fisica));
+    } else {
+      return res.status(404).json({
+        status: "error",
+        mensaje: "La imagen no existe",
+        existe,
+        fichero,
+        ruta_fisica
+      });
+    }
+  })
+};
+
+const buscador = (req, res) => {
+  //Sacar el string de busqueda
+  let busqueda = req.params.busqueda;
+  
+  // Find or
+  Articulo.find({ "$or": [
+    { "titulo": {"$regex": busqueda, "$options": "i"}},
+    { "contenido": {"$regex": busqueda, "$options": "i"}},
+  ]})
+  //ordenar
+  .sort({fecha: -1})
+  //Ejecutar
+  .exec((error, articulosEncontrados) => {
+    //Devolver Resultados
+    if (error || !articulosEncontrados || articulosEncontrados.length <= 0) {
+      return res.status(404).json({
+        status: "error",
+        mensaje: "No se han encontrado articulos",
+      });
+    } 
+    return res.status(200).json({
+      status: "success",
+      articulos: articulosEncontrados,
+    });       
+  })
+  
+
+  
+
+  
 }
 
 
@@ -213,4 +259,5 @@ module.exports = {
   editar,
   subir,
   imagen,
+  buscador,
 };
